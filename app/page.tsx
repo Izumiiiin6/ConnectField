@@ -18,6 +18,7 @@ type Thread = {
 
 export default function Home() {
   const [threads, setThreads] = useState<Thread[]>([])
+  const [threadError, setThreadError] = useState('')
   const [editId, setEditId] = useState<number | null>(null)
   const [editTitle, setEditTitle] = useState('')
   const [editContent, setEditContent] = useState('')
@@ -25,16 +26,25 @@ export default function Home() {
   const [isSavingEdit, setIsSavingEdit] = useState(false)
 
   const getThreads = async () => {
-    const { data, error } = await supabase
+    const client = supabase
+    if (!client) {
+      setThreadError('Supabaseの接続情報が未設定のため、投稿を読み込めません。')
+      setThreads([])
+      return
+    }
+
+    const { data, error } = await client
       .from('threads')
       .select('*')
       .order('created_at', { ascending: false })
 
     if (error) {
       console.error('投稿一覧を取得できませんでした:', error)
+      setThreadError('投稿一覧を取得できませんでした。Supabaseの設定を確認してください。')
       return
     }
 
+    setThreadError('')
     setThreads((data ?? []) as Thread[])
   }
 
@@ -43,6 +53,11 @@ export default function Home() {
   }, [])
 
   const updateThread = async (id: number) => {
+    const client = supabase
+    if (!client) {
+      setEditMessage('Supabaseの接続情報が未設定のため、投稿を更新できません。')
+      return
+    }
     const title = editTitle.trim()
     const content = editContent.trim()
     if (!title || !content) {
@@ -52,7 +67,7 @@ export default function Home() {
 
     setEditMessage('')
     setIsSavingEdit(true)
-    const { data, error } = await supabase
+    const { data, error } = await client
       .from('threads')
       .update({ title, content })
       .eq('id', id)
@@ -78,7 +93,12 @@ export default function Home() {
   }
 
   const deleteThread = async (id: number) => {
-    const { error } = await supabase
+    const client = supabase
+    if (!client) {
+      setThreadError('Supabaseの接続情報が未設定のため、投稿を削除できません。')
+      return
+    }
+    const { error } = await client
       .from('threads')
       .delete()
       .eq('id', id)
@@ -99,8 +119,9 @@ export default function Home() {
             <h2 id="thread-list-title">投稿一覧</h2>
             <p>Supabaseに保存された投稿です</p>
           </div>
-          <span className="thread-count">{threads.length}件</span>
+          {!threadError ? <span className="thread-count">{threads.length}件</span> : null}
         </div>
+        {threadError ? <p className="form-error" role="status">{threadError}</p> : null}
         {editMessage ? (
           <p className={editMessage === '投稿を更新しました。' ? 'form-success' : 'form-error'} role="status">
             {editMessage}
@@ -150,7 +171,7 @@ export default function Home() {
               </Card>
             ))}
           </div>
-        ) : (
+        ) : threadError ? null : (
           <Card className="home-thread-empty"><CardContent>まだ投稿はありません。</CardContent></Card>
         )}
       </section>

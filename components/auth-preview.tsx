@@ -17,6 +17,10 @@ export function AuthPreview({ mode }: { mode: "login" | "signup" }) {
   const router = useRouter() // ← 追加
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
+    if (!supabase) {
+      setMessage("Supabaseの接続情報が未設定のため、認証を利用できません。")
+      return
+    }
     // メールアドレスをフォームから取得
     const emailInput = (event.currentTarget.elements.namedItem("auth-email") as HTMLInputElement).value
     if (isSignup) {
@@ -118,10 +122,11 @@ export function AuthPreview({ mode }: { mode: "login" | "signup" }) {
                   </Field>
                 ) : null}
               </FieldGroup>
+              {!supabase ? <p className="auth-status" role="status">Supabaseの接続情報が未設定のため、ログインと新規登録を利用できません。</p> : null}
               {message ? <p className="auth-status" role="status" aria-live="polite">{message}</p> : null}
             </CardContent>
             <CardFooter className="auth-card-footer">
-              <Button type="submit" size="lg" className="auth-submit-button">
+              <Button type="submit" size="lg" className="auth-submit-button" disabled={!supabase}>
                 {isSignup ? "登録する" : "ログイン"}<ArrowRight data-icon="inline-end" aria-hidden="true" />
               </Button>
               <p className="auth-switch-link">

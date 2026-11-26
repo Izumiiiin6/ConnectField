@@ -10,6 +10,7 @@ import { WorkConnectMark } from '@/components/work-connect-ui'
 export default function Header() {
   const router = useRouter()
   const handleSignOut = async () => {
+    if (!supabase) return
     const { error } = await supabase.auth.signOut()
     if (error) return
     router.replace('/login')
@@ -26,9 +27,11 @@ export default function Header() {
             <span className="brand-subtitle">社内コミュニティ</span>
           </span>
         </Link>
-        <Button type="button" variant="outline" className="header-logout-button" onClick={handleSignOut}>
-          <LogOut data-icon="inline-start" aria-hidden="true" />ログアウト
-        </Button>
+        {supabase ? (
+          <Button type="button" variant="outline" className="header-logout-button" onClick={handleSignOut}>
+            <LogOut data-icon="inline-start" aria-hidden="true" />ログアウト
+          </Button>
+        ) : null}
       </div>
     </header>
   )
