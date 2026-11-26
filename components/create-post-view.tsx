@@ -53,6 +53,11 @@ export function CreatePostView({ onCreated, children, embedded = false }: { onCr
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
+    const client = supabase
+    if (!client) {
+      setFormError("Supabaseの接続情報が未設定のため、投稿を保存できません。")
+      return
+    }
     const cleanTitle = title.trim()
     const cleanContent = content.trim()
     if (!cleanTitle) {
@@ -66,13 +71,13 @@ export function CreatePostView({ onCreated, children, embedded = false }: { onCr
     setFormError("")
     setFormSuccess("")
     setIsSubmitting(true)
-    const { data: { user }, error: userError } = await supabase.auth.getUser()
+    const { data: { user }, error: userError } = await client.auth.getUser()
     if (userError || !user) {
       setFormError("投稿を保存するにはログインしてください。")
       setIsSubmitting(false)
       return
     }
-    const { error } = await supabase.from("threads").insert({
+    const { error } = await client.from("threads").insert({
       title: cleanTitle,
       content: cleanContent,
       author_name: "匿名ユーザー",
@@ -100,6 +105,7 @@ export function CreatePostView({ onCreated, children, embedded = false }: { onCr
     <section className="composer-page" aria-labelledby="composer-title">
       {!embedded ? <Link href="/" className="back-link"><ArrowLeft aria-hidden="true" />掲示板へ戻る</Link> : null}
       <PageHeading titleId="composer-title" eyebrow="SHARE WITH YOUR TEAM" title="新しい投稿" description="現場の気づきやアイデアを、匿名で共有できます。" />
+      {!supabase ? <p className="form-error" role="status">Supabaseの接続情報が未設定のため、投稿機能を利用できません。</p> : null}
 
       <Card className="composer-card">
         <CardHeader className="composer-card-header">
@@ -205,7 +211,7 @@ export function CreatePostView({ onCreated, children, embedded = false }: { onCr
           </CardContent>
           <CardFooter className="composer-card-footer">
             {!embedded ? <Link href="/" className="secondary-link-button">キャンセル</Link> : null}
-            <Button type="submit" size="lg" disabled={isSubmitting}>
+            <Button type="submit" size="lg" disabled={isSubmitting || !supabase}>
               <Send data-icon="inline-start" aria-hidden="true" />{isSubmitting ? "投稿中..." : "投稿する"}
             </Button>
           </CardFooter>
